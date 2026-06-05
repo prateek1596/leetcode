@@ -115,6 +115,82 @@ tags:
 #### Java
 
 ```java
+import java.util.Arrays;
+
+class Solution {
+    // Helper class to store the count of valid numbers and their total waviness
+    private static class Result {
+        long count;
+        long wavinessSum;
+
+        Result(long count, long wavinessSum) {
+            this.count = count;
+            this.wavinessSum = wavinessSum;
+        }
+    }
+
+    private Result[][][][][] dp;
+    private String s;
+    private int n;
+
+    public long totalWaviness(long num1, long num2) {
+        return getWavinessSum(num2) - getWavinessSum(num1 - 1);
+    }
+
+    private long getWavinessSum(long x) {
+        if (x < 100) return 0;
+        
+        this.s = String.valueOf(x);
+        this.n = s.length();
+        
+        // Dimensions: [index][prev_digit][prev2_digit][is_started][is_tight]
+        // 10 is used as a placeholder value meaning "no digit placed yet"
+        this.dp = new Result[n + 1][11][11][2][2];
+        
+        return dfs(0, 10, 10, 0, 1).wavinessSum;
+    }
+
+    private Result dfs(int idx, int prev, int prev2, int isStarted, int isTight) {
+        if (idx == n) {
+            return new Result(isStarted == 1 ? 1L : 0L, 0L);
+        }
+
+        if (dp[idx][prev][prev2][isStarted][isTight] != null) {
+            return dp[idx][prev][prev2][isStarted][isTight];
+        }
+
+        long totalCount = 0;
+        long totalWaviness = 0;
+
+        int limit = (isTight == 1) ? (s.charAt(idx) - '0') : 9;
+
+        for (int dig = 0; dig <= limit; ++dig) {
+            int nextTight = (isTight == 1 && dig == limit) ? 1 : 0;
+
+            if (isStarted == 0 && dig == 0) {
+                // Number hasn't started yet and we skip a leading zero
+                Result res = dfs(idx + 1, 10, 10, 0, nextTight);
+                totalCount += res.count;
+                totalWaviness += res.wavinessSum;
+            } else {
+                int currentWavinessContribution = 0;
+                // Check if the previous digit forms a peak or a valley with prev2 and dig
+                if (isStarted == 1 && prev2 != 10) {
+                    if ((prev2 < prev && prev > dig) || (prev2 > prev && prev < dig)) {
+                        currentWavinessContribution = 1;
+                    }
+                }
+
+                Result res = dfs(idx + 1, dig, prev, 1, nextTight);
+                totalCount += res.count;
+                // Total waviness added = (waviness of suffix) + (count of valid suffixes * waviness contribution of 'prev')
+                totalWaviness += res.wavinessSum + (res.count * currentWavinessContribution);
+            }
+        }
+
+        return dp[idx][prev][prev2][isStarted][isTight] = new Result(totalCount, totalWaviness);
+    }
+}
 
 ```
 
